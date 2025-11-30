@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --color-text: 17 24 28;
+        --color-background: 255 255 255;
+        --color-tint: 10 126 164;
+        --color-icon: 104 112 118;
+        --color-tab-icon-default: 104 112 118;
+        --color-tab-icon-selected: 10 126 164;
+        --color-surface: 243 244 246;
+    }
+
+    .dark {
+        --color-text: 236 237 238;
+        --color-background: 21 23 24;
+        --color-tint: 74 222 128;
+        --color-icon: 155 161 166;
+        --color-tab-icon-default: 155 161 166;
+        --color-tab-icon-selected: 74 222 128;
+        --color-surface: 31 41 55;
+    }
+}
