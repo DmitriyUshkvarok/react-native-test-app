@@ -17,12 +17,13 @@ export function ThemedText({
     <Text
       style={style}
       className={cn(
-        'text-text',
+        'text-[#11181C] dark:text-[#ECEDEE]',
         type === 'default' && 'text-base leading-6',
         type === 'defaultSemiBold' && 'text-base leading-6 font-semibold',
         type === 'title' && 'text-[29px] font-bold leading-[29px]',
         type === 'subtitle' && 'text-xl font-bold',
-        type === 'link' && 'text-base leading-[30px] text-tint',
+        type === 'link' &&
+          'text-base leading-[30px] text-[#0a7ea4] dark:text-[#4ade80]',
         className,
       )}
       {...rest}

@@ -14,7 +14,7 @@ export function ThemedView({
   return (
     <View
       style={style}
-      className={cn('bg-background', className)}
+      className={cn('bg-white dark:bg-[#151718]', className)}
       {...otherProps}
     />
   );

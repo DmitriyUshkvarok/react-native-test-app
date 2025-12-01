@@ -9,7 +9,7 @@ interface LayoutScrollProps extends ScrollViewProps {
 
 const LayoutScroll = ({ children, className, ...props }: LayoutScrollProps) => {
   return (
-    <ThemedView className={cn(`h-full w-full pt-16`, className)}>
+    <ThemedView className={cn(`h-full w-full`, className)}>
       <ScrollView showsVerticalScrollIndicator={false} {...props}>
         {children}
       </ScrollView>

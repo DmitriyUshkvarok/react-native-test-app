@@ -1,7 +1,7 @@
 import { useAppSelector } from '@/hooks/redux';
+import { ClerkAndConvexProvider } from '@/providers/clerk-convex-provider';
 import { store } from '@/store/store';
-import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
-import { tokenCache } from '@clerk/clerk-expo/token-cache';
+import { useAuth } from '@clerk/clerk-expo';
 import {
   DarkTheme,
   DefaultTheme,
@@ -12,7 +12,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
-import { View } from 'react-native';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
@@ -46,19 +45,16 @@ function RootLayoutNav() {
       value={theme === 'dark' ? DarkTheme : DefaultTheme}
     >
       <SafeAreaProvider>
-        <View className={theme === 'dark' ? 'dark flex-1' : 'flex-1'}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(home)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen
-              name="modal"
-              options={{ presentation: 'modal', title: 'Modal' }}
-            />
-          </Stack>
-          <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-          <Toast />
-        </View>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(home)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: 'modal', title: 'Modal' }}
+          />
+        </Stack>
+        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+        <Toast />
       </SafeAreaProvider>
     </NavigationThemeProvider>
   );
@@ -67,9 +63,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <ClerkProvider tokenCache={tokenCache}>
+      <ClerkAndConvexProvider>
         <RootLayoutNav />
-      </ClerkProvider>
+      </ClerkAndConvexProvider>
     </Provider>
   );
 }

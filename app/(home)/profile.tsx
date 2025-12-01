@@ -77,7 +77,7 @@ const Profile = () => {
         </ThemedText>
 
         {/* Stats Section */}
-        <ThemedView className="flex-row justify-around w-full mt-8 rounded-2xl p-4 bg-surface">
+        <ThemedView className="flex-row justify-around w-full mt-8 rounded-2xl p-4 bg-[#F3F4F6] dark:bg-[#1F2937]">
           <View className="items-center">
             <ThemedText className="text-xl font-bold">12</ThemedText>
             <ThemedText className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
@@ -106,7 +106,7 @@ const Profile = () => {
             Settings
           </ThemedText>
 
-          <ThemedView className="flex-row items-center justify-between p-4 rounded-xl bg-surface">
+          <ThemedView className="flex-row items-center justify-between p-4 rounded-xl bg-[#F3F4F6] dark:bg-[#1F2937]">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
                 <IconSymbol name="bell.fill" size={20} color="#3B82F6" />
@@ -120,7 +120,7 @@ const Profile = () => {
             />
           </ThemedView>
 
-          <ThemedView className="flex-row items-center justify-between p-4 rounded-xl bg-surface">
+          <ThemedView className="flex-row items-center justify-between p-4 rounded-xl bg-[#F3F4F6] dark:bg-[#1F2937]">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center">
                 <IconSymbol name="moon.fill" size={20} color="#A855F7" />
@@ -135,7 +135,7 @@ const Profile = () => {
           </ThemedView>
 
           <ButtonOpacity
-            className="flex-row items-center justify-between p-4 rounded-xl bg-surface"
+            className="flex-row items-center justify-between p-4 rounded-xl bg-[#F3F4F6] dark:bg-[#1F2937]"
             onPress={() => {}}
           >
             <View className="flex-row items-center gap-3">
@@ -150,7 +150,7 @@ const Profile = () => {
           </ButtonOpacity>
 
           <ButtonOpacity
-            className="flex-row items-center justify-between p-4 rounded-xl bg-surface"
+            className="flex-row items-center justify-between p-4 rounded-xl bg-[#F3F4F6] dark:bg-[#1F2937]"
             onPress={() => {}}
           >
             <View className="flex-row items-center gap-3">
