@@ -1,76 +1,162 @@
+import LayoutScroll from '@/components/_layout-scroll';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import ButtonOpacity from '@/components/ui/button-opacity';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { ScrollView, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { api } from '@/convex/_generated/api';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useUser } from '@clerk/clerk-expo';
+import { Ionicons } from '@expo/vector-icons';
+import { useMutation } from 'convex/react';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+  TouchableOpacity,
+} from 'react-native';
 
-const Create = () => {
+const blurhash =
+  '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
+
+export default function CreateScreen() {
+  const router = useRouter();
+  const { user } = useUser();
+  const iconColor = useThemeColor({}, 'icon');
+
+  const [caption, setCaption] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      const imageUri = result.assets[0].uri;
+      setSelectedImage(imageUri);
+    }
+  };
+
+  const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
+  const createPost = useMutation(api.posts.createPost);
+
+  const handleShare = async () => {
+    if (!selectedImage) return;
+
+    try {
+      setIsSharing(true);
+      const uploadUrl = await generateUploadUrl();
+
+      const uploadResult = await FileSystem.uploadAsync(
+        uploadUrl,
+        selectedImage,
+        {
+          httpMethod: 'POST',
+          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          mimeType: 'image/jpeg',
+        },
+      );
+
+      if (uploadResult.status !== 200) throw new Error('Upload failed');
+
+      const { storageId } = JSON.parse(uploadResult.body);
+      await createPost({ storageId, caption });
+
+      setSelectedImage(null);
+      setCaption('');
+
+      router.push('/(home)');
+    } catch (error) {
+      console.log('Error sharing post');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  if (!selectedImage) {
+    return (
+      <ThemedView className="flex-1">
+        <TouchableOpacity
+          className="flex-1 justify-center items-center gap-3"
+          onPress={pickImage}
+        >
+          <Ionicons name="image-outline" size={48} color={iconColor} />
+          <ThemedText className="text-gray-500 text-base">
+            Tap to select an image
+          </ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
+
   return (
-    <SafeAreaView className="flex-1" edges={['left', 'right']}>
-      <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-        <ThemedView className="p-6">
-          <View className="items-center mb-6">
-            <View className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full items-center justify-center mb-3">
-              <IconSymbol name="plus" size={32} color="#22C55E" />
-            </View>
-            <ThemedText className="text-2xl font-bold">
-              Создать новый пост
-            </ThemedText>
-          </View>
-
-          {/* Форма */}
-          <ThemedView className="gap-4">
-            <View>
-              <ThemedText className="text-sm font-medium mb-2">
-                Заголовок
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-white dark:bg-black"
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <ThemedView className="">
+        {/* HEADER */}
+        <ThemedView className="flex-row items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+          <ButtonOpacity
+            onPress={() => {
+              setSelectedImage(null);
+              setCaption('');
+            }}
+            disabled={isSharing}
+          >
+            <Ionicons name="arrow-back" size={28} color={iconColor} />
+          </ButtonOpacity>
+          <ThemedText className="text-base font-bold">New Post</ThemedText>
+          <ButtonOpacity
+            disabled={isSharing || !selectedImage}
+            onPress={handleShare}
+          >
+            {isSharing ? (
+              <ActivityIndicator size="small" color={iconColor} />
+            ) : (
+              <ThemedText className="text-blue-500 font-bold text-base">
+                Share
               </ThemedText>
-              <TextInput
-                className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-gray-900 dark:text-white"
-                placeholder="Введите заголовок..."
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-
-            <View>
-              <ThemedText className="text-sm font-medium mb-2">
-                Описание
-              </ThemedText>
-              <TextInput
-                className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-gray-900 dark:text-white"
-                placeholder="Введите описание..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </View>
-
-            <ButtonOpacity
-              className="bg-green-500 h-[50px] rounded-lg mt-4"
-              onPress={() => {}}
-            >
-              <ThemedText className="text-white font-semibold text-center">
-                Опубликовать
-              </ThemedText>
-            </ButtonOpacity>
-          </ThemedView>
-
-          {/* Информация */}
-          <View className="mt-8 bg-yellow-50 dark:bg-yellow-950 p-4 rounded-lg">
-            <ThemedText className="text-sm font-semibold mb-2">
-              💡 Совет по SafeAreaView с формами:
-            </ThemedText>
-            <ThemedText className="text-sm text-gray-600 dark:text-gray-400">
-              При работе с формами SafeAreaView автоматически учитывает
-              клавиатуру на iOS. На Android может потребоваться
-              KeyboardAvoidingView.
-            </ThemedText>
-          </View>
+            )}
+          </ButtonOpacity>
         </ThemedView>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
+      </ThemedView>
 
-export default Create;
+      <LayoutScroll
+        contentContainerStyle={{ flexGrow: 1 }}
+        bounces={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ThemedView className="flex-1">
+          {/* INPUT ROW */}
+          <ThemedView className="flex-row p-4 gap-4 border-b border-gray-100 dark:border-gray-800">
+            <Image
+              source={{ uri: selectedImage }}
+              style={{ width: 70, height: 70, borderRadius: 4 }}
+              contentFit="cover"
+            />
+            <TextInput
+              className="flex-1 text-black dark:text-white text-base pt-0"
+              placeholder="Write a caption..."
+              placeholderTextColor="#9CA3AF"
+              multiline
+              value={caption}
+              onChangeText={setCaption}
+              editable={!isSharing}
+              autoFocus={true}
+            />
+          </ThemedView>
+        </ThemedView>
+      </LayoutScroll>
+    </KeyboardAvoidingView>
+  );
+}

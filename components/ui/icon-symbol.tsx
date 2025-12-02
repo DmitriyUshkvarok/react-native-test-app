@@ -34,6 +34,8 @@ const MAPPING = {
   plus: 'add',
   'leaf.fill': 'eco',
   'rectangle.portrait.and.arrow.right': 'logout',
+  'arrow.left': 'arrow-left',
+  'arrow.right': 'arrow-right',
 } as IconMapping;
 
 /**

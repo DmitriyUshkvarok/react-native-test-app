@@ -1,69 +1,101 @@
+import { PostSkeleton } from '@/components/post-skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ScrollView, View } from 'react-native';
+import { api } from '@/convex/_generated/api';
+import { useQuery } from 'convex/react';
+import { Image } from 'expo-image';
+import { useState } from 'react';
+import { FlatList, RefreshControl, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const HomePrimary = () => {
+  const posts = useQuery(api.posts.getPosts);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Convex queries are reactive and auto-update
+    // Just provide visual feedback
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 800);
+  };
+
+  // Show skeleton while loading
+  if (posts === undefined) {
+    return (
+      <SafeAreaView
+        className="flex-1 bg-white dark:bg-black"
+        edges={['left', 'right']}
+      >
+        <PostSkeleton />
+        <PostSkeleton />
+        <PostSkeleton />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView className="flex-1" edges={['left', 'right']}>
-      <ScrollView className="flex-1">
-        <ThemedView className="p-6">
-          <ThemedText className="text-2xl font-bold mb-4">
-            SafeAreaView Demo
-          </ThemedText>
+    <SafeAreaView
+      className="flex-1 bg-white dark:bg-black"
+      edges={['left', 'right']}
+    >
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item._id}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        renderItem={({ item }) => (
+          <ThemedView className="mb-6">
+            {/* Header */}
+            <View className="flex-row items-center p-3">
+              <Image
+                source={{ uri: item.user?.image }}
+                style={{ width: 32, height: 32, borderRadius: 16 }}
+                contentFit="cover"
+              />
+              <ThemedText className="ml-3 font-semibold">
+                {item.user?.fullName || 'User'}
+              </ThemedText>
+            </View>
 
-          <ThemedText className="text-base mb-4">
-            Этот экран использует SafeAreaView с edges={['left', 'right']}
-          </ThemedText>
+            {/* Image */}
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={{ width: '100%', aspectRatio: 1 }}
+              contentFit="cover"
+              transition={200}
+            />
 
-          {/* Визуальная демонстрация границ */}
-          <View className="border-2 border-blue-500 p-4 rounded-lg mb-4">
-            <ThemedText className="text-sm font-semibold mb-2">
-              🔵 Синяя граница показывает контент
-            </ThemedText>
-            <ThemedText className="text-sm text-gray-600 dark:text-gray-400">
-              На iPhone с notch контент не будет касаться краев экрана благодаря
-              SafeAreaView
-            </ThemedText>
-          </View>
+            {/* Actions (Likes/Comments - Placeholder) */}
+            <View className="flex-row p-3 gap-4">
+              <ThemedText>❤️</ThemedText>
+              <ThemedText>💬</ThemedText>
+              <ThemedText>✈️</ThemedText>
+            </View>
 
-          {/* Объяснение edges */}
-          <ThemedView className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4">
-            <ThemedText className="font-semibold mb-2">
-              Параметр edges={['left', 'right']}:
-            </ThemedText>
-            <ThemedText className="text-sm mb-1">
-              ✅ Left - защита от левого края
-            </ThemedText>
-            <ThemedText className="text-sm mb-1">
-              ✅ Right - защита от правого края
-            </ThemedText>
-            <ThemedText className="text-sm mb-1">
-              ❌ Top - не используем (есть Header)
-            </ThemedText>
-            <ThemedText className="text-sm">
-              ❌ Bottom - не используем (есть Tab Bar)
+            {/* Caption */}
+            {item.caption && (
+              <View className="px-3 pb-2">
+                <ThemedText>
+                  <ThemedText className="font-semibold">
+                    {item.user?.fullName || 'User'}{' '}
+                  </ThemedText>
+                  {item.caption}
+                </ThemedText>
+              </View>
+            )}
+          </ThemedView>
+        )}
+        ListEmptyComponent={() => (
+          <ThemedView className="flex-1 justify-center items-center p-10">
+            <ThemedText className="text-gray-500 text-center">
+              No posts yet. Be the first to create one!
             </ThemedText>
           </ThemedView>
-
-          {/* Примеры контента */}
-          <ThemedText className="text-lg font-semibold mb-2">
-            Примеры контента:
-          </ThemedText>
-
-          {[1, 2, 3, 4, 5].map((item) => (
-            <ThemedView
-              key={item}
-              className="bg-purple-100 dark:bg-purple-900 p-4 rounded-lg mb-3"
-            >
-              <ThemedText className="font-medium">Карточка #{item}</ThemedText>
-              <ThemedText className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Этот контент безопасно отображается на всех устройствах
-              </ThemedText>
-            </ThemedView>
-          ))}
-        </ThemedView>
-      </ScrollView>
+        )}
+      />
     </SafeAreaView>
   );
 };

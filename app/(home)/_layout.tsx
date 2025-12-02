@@ -1,5 +1,5 @@
 import { HapticTab } from '@/components/haptic-tab';
-import { Logo } from '@/components/icons/logo';
+import { CustomHeader } from '@/components/ui/custom-header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAuth } from '@clerk/clerk-expo';
@@ -18,9 +18,8 @@ const HomeTabLayout = () => {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: tintColor,
-        headerShown: true, // Показываем хедер
-        headerTitle: () => <Logo />, // Ставим наше лого в заголовок
-        headerTitleAlign: 'center', // Центрируем
+        headerShown: true,
+        header: (props) => <CustomHeader {...props} />,
         tabBarButton: HapticTab,
       }}
     >
@@ -46,6 +45,7 @@ const HomeTabLayout = () => {
         name="create"
         options={{
           title: 'Create',
+          headerTitle: 'New Post',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="plus" color={color} />
           ),

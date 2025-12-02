@@ -6,11 +6,12 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { setTheme } from '@/store/theme-slice';
 import { useClerk, useUser } from '@clerk/clerk-expo';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
-  Image,
+  Modal,
   RefreshControl,
   StyleSheet,
   Switch,
@@ -25,6 +26,7 @@ const Profile = () => {
   const theme = useAppSelector((state) => state.theme.theme);
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -67,7 +69,20 @@ const Profile = () => {
       <View className="flex items-center p-6">
         <Image
           source={{ uri: user?.imageUrl }}
-          className="w-32 h-32 rounded-full border-4 border-white shadow-sm"
+          style={{
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            borderWidth: 4,
+            borderColor: 'white',
+            shadowColor: 'black',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+          }}
+          // className="w-32 h-32 rounded-full border-4 border-white shadow-sm"
+          contentFit="cover"
+          transition={1000}
         />
         <ThemedText className="mt-4 text-2xl font-bold">
           {user?.fullName || 'User'}
@@ -149,6 +164,27 @@ const Profile = () => {
             <IconSymbol name="chevron.right" size={20} color="#9CA3AF" />
           </ButtonOpacity>
 
+          {/* DEV: Test Splash Screen */}
+          <ButtonOpacity
+            className="flex-row items-center justify-between p-4 rounded-xl bg-[#F3F4F6] dark:bg-[#1F2937]"
+            onPress={() => {
+              setShowSplash(true);
+              setTimeout(() => {
+                setShowSplash(false);
+              }, 3000); // Показать на 3 секунды
+            }}
+          >
+            <View className="flex-row items-center gap-3">
+              <View className="w-10 h-10 bg-yellow-100 rounded-full items-center justify-center">
+                <IconSymbol name="leaf.fill" size={20} color="#EAB308" />
+              </View>
+              <ThemedText className="font-medium">
+                Test Splash Screen
+              </ThemedText>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color="#9CA3AF" />
+          </ButtonOpacity>
+
           <ButtonOpacity
             className="flex-row items-center justify-between p-4 rounded-xl bg-[#F3F4F6] dark:bg-[#1F2937]"
             onPress={() => {}}
@@ -185,6 +221,22 @@ const Profile = () => {
           Version 1.0.0
         </ThemedText>
       </View>
+
+      <Modal
+        visible={showSplash}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={() => setShowSplash(false)}
+      >
+        <View className="flex-1 bg-[#151718] items-center justify-center">
+          <Image
+            source={require('@/assets/images/splash-screen.png')}
+            className="w-full h-full"
+            contentFit="cover"
+            transition={500}
+          />
+        </View>
+      </Modal>
     </LayoutScroll>
   );
 };

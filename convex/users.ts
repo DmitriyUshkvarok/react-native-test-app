@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { mutation, MutationCtx, query, QueryCtx } from './_generated/server';
 
 // Получить всех пользователей
 export const getUsers = query({
@@ -78,3 +78,46 @@ export const deleteUser = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error('Unauthorized');
+
+  const currentUser = await ctx.db
+    .query('users')
+    .withIndex('by_clerk_id', (q) => q.eq('clerkId', identity.subject))
+    .first();
+
+  if (currentUser) {
+    return currentUser;
+  }
+
+  // Если пользователя нет в базе, но он авторизован — создаем его (только в мутациях)
+  // Проверяем, есть ли метод insert (признак MutationCtx)
+
+  if ('insert' in ctx.db) {
+    console.log(
+      'User not found in DB, creating new user from identity:',
+      identity.subject,
+    );
+
+    const newUserId = await ctx.db.insert('users', {
+      fullName: identity.name || 'User',
+      email: identity.email || '',
+      clerkId: identity.subject,
+      image: identity.pictureUrl,
+      name: identity.email?.split('@')[0] || 'User',
+      bio: '',
+      followers: 0,
+      following: 0,
+      posts: 0,
+      likes: 0,
+    });
+
+    const newUser = await ctx.db.get(newUserId);
+    if (!newUser) throw new Error('Failed to create user');
+    return newUser;
+  }
+
+  throw new Error('User not found');
+}
