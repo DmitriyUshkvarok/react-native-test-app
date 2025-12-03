@@ -19,6 +19,9 @@ export const createPost = mutation({
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
+    if (!currentUser) {
+      throw new Error('User not found');
+    }
 
     const imageUrl = await ctx.storage.getUrl(args.storageId);
 
@@ -46,14 +49,55 @@ export const createPost = mutation({
 export const getPosts = query({
   args: {},
   handler: async (ctx) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
     const posts = await ctx.db.query('posts').order('desc').collect();
+
+    if (posts.length === 0) {
+      return [];
+    }
 
     return await Promise.all(
       posts.map(async (post) => {
         const user = await ctx.db.get(post.userId);
+
+        const likes = currentUser
+          ? await ctx.db
+              .query('likes')
+              .withIndex('by_user_and_post', (q) =>
+                q.eq('userId', currentUser._id).eq('postId', post._id),
+              )
+              .first()
+          : null;
+
+        const bookmarked = currentUser
+          ? await ctx.db
+              .query('bookmarks')
+              .withIndex('by_user_and_post', (q) =>
+                q.eq('userId', currentUser._id).eq('postId', post._id),
+              )
+              .first()
+          : null;
+
         return {
           ...post,
-          user,
+          user: user?.deletedAt
+            ? {
+                _id: user._id,
+                name: '[Deleted User]',
+                fullName: '[Deleted User]',
+                image: undefined,
+              }
+            : user
+              ? {
+                  _id: user._id,
+                  name: user.name,
+                  fullName: user.fullName,
+                  image: user.image,
+                }
+              : null,
+          isLiked: !!likes,
+          isBookmarked: !!bookmarked,
         };
       }),
     );

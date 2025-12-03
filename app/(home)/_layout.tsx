@@ -27,6 +27,7 @@ const HomeTabLayout = () => {
         name="index"
         options={{
           title: 'Home',
+          headerShown: false, // Отключаем стандартный header
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),

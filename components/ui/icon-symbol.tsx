@@ -36,6 +36,7 @@ const MAPPING = {
   'rectangle.portrait.and.arrow.right': 'logout',
   'arrow.left': 'arrow-left',
   'arrow.right': 'arrow-right',
+  'camera.fill': 'camera',
 } as IconMapping;
 
 /**

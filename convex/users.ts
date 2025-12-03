@@ -1,11 +1,15 @@
 import { v } from 'convex/values';
 import { mutation, MutationCtx, query, QueryCtx } from './_generated/server';
 
-// Получить всех пользователей
+// Получить всех пользователей (исключая удаленных)
 export const getUsers = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query('users').order('desc').take(100);
+    return await ctx.db
+      .query('users')
+      .filter((q) => q.eq(q.field('deletedAt'), undefined))
+      .order('desc')
+      .take(100);
   },
 });
 
@@ -41,6 +45,7 @@ export const createUser = mutation({
       following: 0,
       posts: 0,
       likes: 0,
+      deletedAt: undefined,
     };
 
     const existingUser = await ctx.db
@@ -69,13 +74,27 @@ export const updateUser = mutation({
   },
 });
 
-// Удалить пользователя
+// Мягкое удаление пользователя (Soft Delete)
 export const deleteUser = mutation({
   args: {
     id: v.id('users'),
   },
   handler: async (ctx, args) => {
-    await ctx.db.delete(args.id);
+    await ctx.db.patch(args.id, {
+      deletedAt: Date.now(),
+    });
+  },
+});
+
+// Восстановить удаленного пользователя
+export const restoreUser = mutation({
+  args: {
+    id: v.id('users'),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      deletedAt: undefined,
+    });
   },
 });
 
@@ -96,11 +115,6 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
   // Проверяем, есть ли метод insert (признак MutationCtx)
 
   if ('insert' in ctx.db) {
-    console.log(
-      'User not found in DB, creating new user from identity:',
-      identity.subject,
-    );
-
     const newUserId = await ctx.db.insert('users', {
       fullName: identity.name || 'User',
       email: identity.email || '',
@@ -112,6 +126,7 @@ export async function getAuthenticatedUser(ctx: QueryCtx | MutationCtx) {
       following: 0,
       posts: 0,
       likes: 0,
+      deletedAt: undefined,
     });
 
     const newUser = await ctx.db.get(newUserId);

@@ -31,6 +31,7 @@ export default function CreateScreen() {
   const [caption, setCaption] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
@@ -141,8 +142,10 @@ export default function CreateScreen() {
           <ThemedView className="flex-row p-4 gap-4 border-b border-gray-100 dark:border-gray-800">
             <Image
               source={{ uri: selectedImage }}
+              placeholder={{ blurhash }}
               style={{ width: 70, height: 70, borderRadius: 4 }}
               contentFit="cover"
+              transition={300}
             />
             <TextInput
               className="flex-1 text-black dark:text-white text-base pt-0"
