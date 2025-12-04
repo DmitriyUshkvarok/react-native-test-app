@@ -46,6 +46,156 @@ export const createPost = mutation({
   },
 });
 
+export const deletePost = mutation({
+  args: {
+    postId: v.id('posts'),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    const post = await ctx.db.get(args.postId);
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    // Проверка владельца поста
+    if (post.userId !== currentUser._id) {
+      throw new Error('Unauthorized: You can only delete your own posts');
+    }
+
+    // Удаляем пост
+    await ctx.db.delete(args.postId);
+
+    // Уменьшаем счетчик постов пользователя
+    await ctx.db.patch(currentUser._id, {
+      posts: Math.max(0, currentUser.posts - 1),
+    });
+
+    // Опционально: удаляем файл из хранилища
+    if (post.storageId) {
+      await ctx.storage.delete(post.storageId);
+    }
+
+    return { success: true };
+  },
+});
+
+export const updatePost = mutation({
+  args: {
+    postId: v.id('posts'),
+    caption: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    const post = await ctx.db.get(args.postId);
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    // Проверка владельца поста
+    if (post.userId !== currentUser._id) {
+      throw new Error('Unauthorized: You can only edit your own posts');
+    }
+
+    // Обновляем подпись
+    await ctx.db.patch(args.postId, {
+      caption: args.caption,
+    });
+
+    return { success: true };
+  },
+});
+
+export const toggleLike = mutation({
+  args: {
+    postId: v.id('posts'),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    const post = await ctx.db.get(args.postId);
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    // Проверка, если пользователь уже лайкал пост
+    const existingLike = await ctx.db
+      .query('likes')
+      .withIndex('by_user_and_post', (q) =>
+        q.eq('userId', currentUser._id).eq('postId', args.postId),
+      )
+      .first();
+
+    if (existingLike) {
+      // Отмена лайка
+      await ctx.db.delete(existingLike._id);
+
+      // Уменьшаем количество лайков у поста
+      await ctx.db.patch(args.postId, {
+        likes: Math.max(0, post.likes - 1),
+      });
+
+      // Уменьшаем количество лайков у автора поста
+      const author = await ctx.db.get(post.userId);
+      if (author) {
+        await ctx.db.patch(author._id, {
+          likes: Math.max(0, author.likes - 1),
+        });
+      }
+
+      return false; // Не лайкал больше
+    } else {
+      // Лайк
+      await ctx.db.insert('likes', {
+        userId: currentUser._id,
+        postId: args.postId,
+      });
+
+      // Увеличиваем количество лайков у поста
+      await ctx.db.patch(args.postId, {
+        likes: post.likes + 1,
+      });
+
+      // Увеличиваем количество лайков у автора поста
+      const author = await ctx.db.get(post.userId);
+      if (author) {
+        await ctx.db.patch(author._id, {
+          likes: author.likes + 1,
+        });
+      }
+
+      // Отправка уведомления автору поста
+      if (post.userId !== currentUser._id) {
+        // Проверка, если уведомление уже существует, чтобы избежать спама
+        const existingNotification = await ctx.db
+          .query('notifications')
+          .withIndex('by_receiver', (q) => q.eq('receiverId', post.userId))
+          .filter((q) =>
+            q.and(
+              q.eq(q.field('type'), 'like'),
+              q.eq(q.field('postId'), args.postId),
+              q.eq(q.field('senderId'), currentUser._id),
+            ),
+          )
+          .first();
+
+        if (!existingNotification) {
+          await ctx.db.insert('notifications', {
+            receiverId: post.userId,
+            senderId: currentUser._id,
+            type: 'like',
+            postId: args.postId,
+            read: false,
+          });
+        }
+      }
+
+      return true; // Liked
+    }
+  },
+});
+
 export const getPosts = query({
   args: {},
   handler: async (ctx) => {
@@ -54,10 +204,10 @@ export const getPosts = query({
     const posts = await ctx.db.query('posts').order('desc').collect();
 
     if (posts.length === 0) {
-      return [];
+      return { posts: [], currentUserId: currentUser?._id };
     }
 
-    return await Promise.all(
+    const postsWithDetails = await Promise.all(
       posts.map(async (post) => {
         const user = await ctx.db.get(post.userId);
 
@@ -101,5 +251,7 @@ export const getPosts = query({
         };
       }),
     );
+
+    return { posts: postsWithDetails, currentUserId: currentUser?._id };
   },
 });

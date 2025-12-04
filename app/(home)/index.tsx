@@ -5,8 +5,9 @@ import Stories from '@/components/home/stories';
 import { PostSkeleton } from '@/components/post-skeleton';
 import { ThemedView } from '@/components/themed-view';
 import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
 import { useClerk, useUser } from '@clerk/clerk-expo';
-import { useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, FlatList, RefreshControl } from 'react-native';
@@ -16,12 +17,15 @@ const blurhash =
   '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
 
 const HomePrimary = () => {
-  const posts = useQuery(api.posts.getPosts);
+  const postsData = useQuery(api.posts.getPosts);
   const [refreshing, setRefreshing] = useState(false);
   const { signOut } = useClerk();
   const { user } = useUser();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const deletePost = useMutation(api.posts.deletePost);
+  const updatePost = useMutation(api.posts.updatePost);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -53,8 +57,28 @@ const HomePrimary = () => {
     ]);
   };
 
+  const handleDeletePost = async (postId: Id<'posts'>) => {
+    try {
+      await deletePost({ postId });
+      // Convex автоматически обновит список постов через реактивный query
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', 'Failed to delete post. Please try again.');
+    }
+  };
+
+  const handleEditPost = async (postId: Id<'posts'>, newCaption: string) => {
+    try {
+      await updatePost({ postId, caption: newCaption });
+      // Convex автоматически обновит список постов через реактивный query
+    } catch (error) {
+      console.error('Error updating post:', error);
+      Alert.alert('Error', 'Failed to update caption. Please try again.');
+    }
+  };
+
   // Show skeleton while loading
-  if (posts === undefined) {
+  if (postsData === undefined) {
     return (
       <ThemedView className="flex-1" style={{ paddingTop: insets.top }}>
         <HomeHeader onLogout={handleLogout} />
@@ -63,6 +87,8 @@ const HomePrimary = () => {
       </ThemedView>
     );
   }
+
+  const { posts, currentUserId } = postsData;
 
   return (
     <ThemedView className="flex-1" style={{ paddingTop: insets.top }}>
@@ -87,7 +113,15 @@ const HomePrimary = () => {
         // Скрыть вертикальный индикатор прокрутки
         showsVerticalScrollIndicator={false}
         // Рендер каждого поста
-        renderItem={({ item }) => <PostCard post={item} blurhash={blurhash} />}
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            blurhash={blurhash}
+            currentUserId={currentUserId}
+            onDelete={handleDeletePost}
+            onEdit={handleEditPost}
+          />
+        )}
         // Компонент для пустого состояния (когда нет постов)
         ListEmptyComponent={
           <EmptyFeed onCreatePost={() => router.push('/(home)/create')} />

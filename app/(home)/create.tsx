@@ -1,32 +1,18 @@
 import LayoutScroll from '@/components/_layout-scroll';
-import { ThemedText } from '@/components/themed-text';
+import CaptionInput from '@/components/create/caption-input';
+import CreatePostHeader from '@/components/create/create-post-header';
+import ImageSelector from '@/components/create/image-selector';
 import { ThemedView } from '@/components/themed-view';
-import ButtonOpacity from '@/components/ui/button-opacity';
 import { api } from '@/convex/_generated/api';
-import { useThemeColor } from '@/hooks/use-theme-color';
-import { useUser } from '@clerk/clerk-expo';
-import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from 'convex/react';
 import * as FileSystem from 'expo-file-system/legacy';
-import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  TextInput,
-  TouchableOpacity,
-} from 'react-native';
-
-const blurhash =
-  '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 
 export default function CreateScreen() {
   const router = useRouter();
-  const { user } = useUser();
-  const iconColor = useThemeColor({}, 'icon');
 
   const [caption, setCaption] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -83,19 +69,7 @@ export default function CreateScreen() {
   };
 
   if (!selectedImage) {
-    return (
-      <ThemedView className="flex-1">
-        <TouchableOpacity
-          className="flex-1 justify-center items-center gap-3"
-          onPress={pickImage}
-        >
-          <Ionicons name="image-outline" size={48} color={iconColor} />
-          <ThemedText className="text-gray-500 text-base">
-            Tap to select an image
-          </ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    );
+    return <ImageSelector onSelect={pickImage} />;
   }
 
   return (
@@ -104,32 +78,16 @@ export default function CreateScreen() {
       className="flex-1 bg-white dark:bg-black"
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <ThemedView className="">
-        {/* HEADER */}
-        <ThemedView className="flex-row items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
-          <ButtonOpacity
-            onPress={() => {
-              setSelectedImage(null);
-              setCaption('');
-            }}
-            disabled={isSharing}
-          >
-            <Ionicons name="arrow-back" size={28} color={iconColor} />
-          </ButtonOpacity>
-          <ThemedText className="text-base font-bold">New Post</ThemedText>
-          <ButtonOpacity
-            disabled={isSharing || !selectedImage}
-            onPress={handleShare}
-          >
-            {isSharing ? (
-              <ActivityIndicator size="small" color={iconColor} />
-            ) : (
-              <ThemedText className="text-blue-500 font-bold text-base">
-                Share
-              </ThemedText>
-            )}
-          </ButtonOpacity>
-        </ThemedView>
+      <ThemedView>
+        <CreatePostHeader
+          onBack={() => {
+            setSelectedImage(null);
+            setCaption('');
+          }}
+          onShare={handleShare}
+          isSharing={isSharing}
+          hasImage={!!selectedImage}
+        />
       </ThemedView>
 
       <LayoutScroll
@@ -138,26 +96,12 @@ export default function CreateScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <ThemedView className="flex-1">
-          {/* INPUT ROW */}
-          <ThemedView className="flex-row p-4 gap-4 border-b border-gray-100 dark:border-gray-800">
-            <Image
-              source={{ uri: selectedImage }}
-              placeholder={{ blurhash }}
-              style={{ width: 70, height: 70, borderRadius: 4 }}
-              contentFit="cover"
-              transition={300}
-            />
-            <TextInput
-              className="flex-1 text-black dark:text-white text-base pt-0"
-              placeholder="Write a caption..."
-              placeholderTextColor="#9CA3AF"
-              multiline
-              value={caption}
-              onChangeText={setCaption}
-              editable={!isSharing}
-              autoFocus={true}
-            />
-          </ThemedView>
+          <CaptionInput
+            imageUri={selectedImage}
+            caption={caption}
+            onChangeCaption={setCaption}
+            isSharing={isSharing}
+          />
         </ThemedView>
       </LayoutScroll>
     </KeyboardAvoidingView>

@@ -2,6 +2,7 @@ import { useAppSelector } from '@/hooks/redux';
 import { ClerkAndConvexProvider } from '@/providers/clerk-convex-provider';
 import { store } from '@/store/store';
 import { useAuth } from '@clerk/clerk-expo';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import {
   DarkTheme,
   DefaultTheme,
@@ -12,6 +13,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
@@ -41,22 +43,26 @@ function RootLayoutNav() {
   }, [theme, setColorScheme]);
 
   return (
-    <NavigationThemeProvider
-      value={theme === 'dark' ? DarkTheme : DefaultTheme}
-    >
-      <SafeAreaProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(home)" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: 'modal', title: 'Modal' }}
-          />
-        </Stack>
-        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-        <Toast />
-      </SafeAreaProvider>
-    </NavigationThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <NavigationThemeProvider
+          value={theme === 'dark' ? DarkTheme : DefaultTheme}
+        >
+          <SafeAreaProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(home)" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen
+                name="modal"
+                options={{ presentation: 'modal', title: 'Modal' }}
+              />
+            </Stack>
+            <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+            <Toast />
+          </SafeAreaProvider>
+        </NavigationThemeProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
