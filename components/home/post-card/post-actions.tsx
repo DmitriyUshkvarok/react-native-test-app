@@ -6,16 +6,20 @@ import { Post } from './types';
 
 interface PostActionsProps {
   post: Post;
+  onCommentPress: () => void;
 }
 
-export default function PostActions({ post }: PostActionsProps) {
+export default function PostActions({
+  post,
+  onCommentPress,
+}: PostActionsProps) {
   const iconColor = useThemeColor({}, 'icon');
 
   return (
     <View className="flex-row items-center justify-between px-3 py-3">
       <View className="flex-row items-center gap-4">
         <PostLikeButton postId={post._id} isLiked={post.isLiked} />
-        <TouchableOpacity>
+        <TouchableOpacity onPress={onCommentPress}>
           <Ionicons name="chatbubble-outline" size={26} color={iconColor} />
         </TouchableOpacity>
         <TouchableOpacity>

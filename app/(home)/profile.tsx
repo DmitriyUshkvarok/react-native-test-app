@@ -230,9 +230,9 @@ const Profile = () => {
       >
         <View className="flex-1 bg-[#151718] items-center justify-center">
           <Image
-            source={require('@/assets/images/splash-screen.png')}
-            className="w-full h-full"
-            contentFit="cover"
+            source={require('@/assets/images/splash-icon.png')}
+            style={{ width: '100%', height: '100%' }}
+            contentFit="contain" // Изменить на contain вместо cover
             transition={500}
           />
         </View>

@@ -2,8 +2,9 @@ import { ThemedView } from '@/components/themed-view';
 import { Id } from '@/convex/_generated/dataModel';
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import EditCaptionSheet from './post-card/edit-caption-sheet';
 import PostActionsSheet from './post-actions-sheet';
+import CommentsSheet from './post-card/comments-sheet';
+import EditCaptionSheet from './post-card/edit-caption-sheet';
 import PostActions from './post-card/post-actions';
 import PostFooter from './post-card/post-footer';
 import PostHeader from './post-card/post-header';
@@ -26,7 +27,7 @@ export default function PostCard({
 }: PostCardProps) {
   const [showActionsSheet, setShowActionsSheet] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
-
+  const [showComments, setShowComments] = useState(false);
   const handleMenuPress = () => {
     setShowActionsSheet(true);
   };
@@ -49,7 +50,7 @@ export default function PostCard({
 
   return (
     <>
-      <ThemedView className="mb-4">
+      <ThemedView>
         {/* Header */}
         <PostHeader
           user={post.user}
@@ -61,6 +62,7 @@ export default function PostCard({
         {/* Image */}
         <Image
           source={{ uri: post.imageUrl }}
+          blurRadius={0}
           placeholder={{ blurhash }}
           style={{ width: '100%', aspectRatio: 1 }}
           contentFit="cover"
@@ -72,7 +74,7 @@ export default function PostCard({
         />
 
         {/* Actions */}
-        <PostActions post={post} />
+        <PostActions post={post} onCommentPress={() => setShowComments(true)} />
 
         {/* Footer (Likes, Caption, Comments, Timestamp) */}
         <PostFooter post={post} />
@@ -93,6 +95,13 @@ export default function PostCard({
         currentCaption={post.caption}
         onSave={handleSaveEdit}
         onClose={() => setShowEditSheet(false)}
+      />
+
+      <CommentsSheet
+        visible={showComments}
+        postId={post._id}
+        postAuthorId={post.userId}
+        onClose={() => setShowComments(false)}
       />
     </>
   );

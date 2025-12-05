@@ -122,6 +122,7 @@ const HomePrimary = () => {
             onEdit={handleEditPost}
           />
         )}
+        ItemSeparatorComponent={() => <ThemedView className="h-4" />}
         // Компонент для пустого состояния (когда нет постов)
         ListEmptyComponent={
           <EmptyFeed onCreatePost={() => router.push('/(home)/create')} />

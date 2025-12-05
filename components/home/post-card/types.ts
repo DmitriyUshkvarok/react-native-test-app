@@ -9,6 +9,7 @@ export interface PostUser {
 
 export interface Post {
   _id: Id<'posts'>;
+  userId: Id<'users'>;
   imageUrl: string;
   caption?: string;
   user: PostUser | null;
