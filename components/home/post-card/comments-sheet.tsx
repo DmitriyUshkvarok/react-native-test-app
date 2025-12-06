@@ -2,7 +2,6 @@ import { ThemedText } from '@/components/themed-text';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { useAuth } from '@clerk/clerk-expo';
 import {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
@@ -10,26 +9,13 @@ import {
   BottomSheetFooter,
   BottomSheetFooterProps,
   BottomSheetModal,
-  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import { useMutation, useQuery } from 'convex/react';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import {
-  ActivityIndicator,
-  Keyboard,
-  ListRenderItem,
-  Platform,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, ListRenderItem } from 'react-native';
+import CommentInput from './comment-input';
 import CommentItem, { Comment as IComment } from './comment-item';
+import CommentsEmptyState from './comments-empty-state';
 
 interface CommentsSheetProps {
   visible: boolean;
@@ -45,35 +31,41 @@ export default function CommentsSheet({
   onClose,
 }: CommentsSheetProps) {
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const [content, setContent] = useState('');
-  const { userId: clerkUserId } = useAuth();
-  const insets = useSafeAreaInsets();
+  const [editingComment, setEditingComment] = useState<IComment | null>(null);
 
   // Получаем текущего пользователя из базы (для проверки ID)
   const currentUser = useQuery(api.users.currentUser);
 
-  const comments = useQuery(api.comments.getComments, { postId });
+  // Оптимизация: не загружаем комментарии, если шторка закрыта
+  const comments = useQuery(
+    api.comments.getComments,
+    visible ? { postId } : 'skip',
+  );
   const createComment = useMutation(api.comments.createComment);
+  const updateComment = useMutation(api.comments.updateComment);
   const deleteComment = useMutation(api.comments.deleteComment);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
   const borderColor = useThemeColor(
     { light: '#E5E7EB', dark: '#374151' },
     'text',
   );
 
+  // Высоты шторки
   const snapPoints = useMemo(() => ['50%', '90%'], []);
 
+  // Показываем/скрываем шторку при изменении visible
   useEffect(() => {
     if (visible) {
       bottomSheetModalRef.current?.present();
     } else {
       bottomSheetModalRef.current?.dismiss();
+      setEditingComment(null); // Reset edit state on close
     }
   }, [visible]);
 
+  // Обработка изменений шторки
   const handleSheetChanges = useCallback(
     (index: number) => {
       if (index === -1) {
@@ -88,85 +80,80 @@ export default function CommentsSheet({
     (props: BottomSheetBackdropProps) => (
       <BottomSheetBackdrop
         {...props}
+        // Индекс, при котором затемнение исчезает (-1 означает, что шторка закрыта)
         disappearsOnIndex={-1}
+        // Индекс, при котором затемнение появляется (0 означает первый snap point)
         appearsOnIndex={0}
+        // Прозрачность затемнения (0.5 = 50% прозрачности)
         opacity={0.5}
       />
     ),
     [],
   );
 
-  const handleSubmit = async () => {
-    if (!content.trim()) return;
+  const handleSubmit = useCallback(
+    async (content: string) => {
+      try {
+        if (editingComment) {
+          await updateComment({
+            commentId: editingComment._id,
+            content: content.trim(),
+          });
+          setEditingComment(null);
+        } else {
+          await createComment({ postId, content: content.trim() });
+        }
+      } catch (error) {
+        console.error('Failed to submit comment:', error);
+      }
+    },
+    [createComment, updateComment, postId, editingComment],
+  );
 
-    try {
-      await createComment({ postId, content: content.trim() });
-      setContent('');
-      Keyboard.dismiss();
-    } catch (error) {
-      console.error('Failed to create comment:', error);
-    }
-  };
+  const handleDelete = useCallback(
+    async (commentId: Id<'comments'>) => {
+      try {
+        await deleteComment({ commentId });
+        if (editingComment?._id === commentId) {
+          setEditingComment(null);
+        }
+      } catch (error) {
+        console.error('Failed to delete comment:', error);
+      }
+    },
+    [deleteComment, editingComment],
+  );
 
-  const handleDelete = async (commentId: Id<'comments'>) => {
-    try {
-      await deleteComment({ commentId });
-    } catch (error) {
-      console.error('Failed to delete comment:', error);
-    }
-  };
+  const handleEdit = useCallback((comment: IComment) => {
+    setEditingComment(comment);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingComment(null);
+    Keyboard.dismiss();
+  }, []);
 
   const renderFooter = useCallback(
     (props: BottomSheetFooterProps) => (
-      <BottomSheetFooter {...props} bottomInset={insets.bottom}>
-        <View
-          className="px-4 py-3 border-t flex-row items-center gap-3"
-          style={{
-            backgroundColor,
-            borderColor,
-            paddingBottom: Platform.OS === 'android' ? 12 : 12, // Корректировка для андроида если нужно
-          }}
-        >
-          <BottomSheetTextInput
-            value={content}
-            onChangeText={setContent}
-            placeholder="Add a comment..."
-            placeholderTextColor="#9CA3AF"
-            style={{
-              flex: 1,
-              backgroundColor: useThemeColor(
-                { light: '#F3F4F6', dark: '#1F2937' },
-                'background',
-              ),
-              color: textColor,
-              borderRadius: 20,
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              fontSize: 16,
-              // Fix for android line height issue
-              lineHeight: undefined,
-              height: 44,
-            }}
-          />
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={!content.trim()}
-            style={{ opacity: content.trim() ? 1 : 0.5 }}
-          >
-            <ThemedText className="font-semibold text-blue-500">
-              Post
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
+      <BottomSheetFooter {...props}>
+        <CommentInput
+          onSubmit={handleSubmit}
+          initialValue={editingComment?.content}
+          isEditing={!!editingComment}
+          onCancel={handleCancelEdit}
+          backgroundColor={backgroundColor}
+          borderColor={borderColor}
+          textColor={textColor}
+        />
       </BottomSheetFooter>
     ),
     [
       backgroundColor,
       borderColor,
-      content,
-      insets.bottom,
       textColor,
       handleSubmit,
+      editingComment,
+      handleCancelEdit,
     ],
   );
 
@@ -177,57 +164,65 @@ export default function CommentsSheet({
         currentUserId={currentUser?._id}
         isPostAuthor={currentUser?._id === postAuthorId}
         onDelete={handleDelete}
+        onEdit={handleEdit}
       />
     ),
-    [currentUser, postAuthorId, handleDelete],
+    [currentUser, postAuthorId, handleDelete, handleEdit],
+  );
+
+  const renderHeader = useCallback(
+    () => (
+      <ThemedText
+        className="text-center font-semibold text-base py-2 border-b mb-2"
+        style={{ borderColor }}
+      >
+        Comments
+      </ThemedText>
+    ),
+    [borderColor],
+  );
+
+  // Используем useMemo для стабильности компонента, чтобы FlatList не ре-рендерил его каждый раз
+  const renderEmptyComponent = useMemo(
+    () => <CommentsEmptyState isLoading={comments === undefined} />,
+    [comments],
   );
 
   return (
     <BottomSheetModal
+      // Ссылка для управления шторкой (открыть/закрыть программно)
       ref={bottomSheetModalRef}
+      // Начальный индекс открытия (0 = первый snap point, т.е. 50%)
       index={0}
+      // Точки остановки шторки ['50%', '90%']
       snapPoints={snapPoints}
+      // Функция обратного вызова при изменении состояния (отслеживание закрытия)
       onChange={handleSheetChanges}
+      // Компонент затемнения заднего фона
       backdropComponent={renderBackdrop}
+      // Стили фона самой шторки
       backgroundStyle={{ backgroundColor }}
+      // Стили полоски-индикатора сверху шторки
       handleIndicatorStyle={{ backgroundColor: borderColor }}
+      // Разрешить закрытие шторки свайпом вниз
       enablePanDownToClose={true}
+      // Поведение клавиатуры: интерактивное (шторка двигается вместе с клавиатурой)
       keyboardBehavior="interactive"
+      // Поведение при потере фокуса клавиатуры: восстановить положение
       keyboardBlurBehavior="restore"
+      // Режим ввода для Android: изменение размера окна при появлении клавиатуры
       android_keyboardInputMode="adjustResize"
+      // Компонент футера (где находится инпут ввода)
       footerComponent={renderFooter}
     >
-      <View style={{ flex: 1 }}>
-        <ThemedText
-          className="text-center font-semibold text-base py-2 border-b"
-          style={{ borderColor }}
-        >
-          Comments
-        </ThemedText>
-
-        {comments === undefined ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator />
-          </View>
-        ) : (
-          <BottomSheetFlatList
-            data={comments}
-            keyExtractor={(item: IComment) => item._id}
-            renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 80 }}
-            ListEmptyComponent={
-              <View className="flex-1 items-center justify-center py-10">
-                <ThemedText className="text-gray-500">
-                  No comments yet.
-                </ThemedText>
-                <ThemedText className="text-gray-400 text-sm mt-1">
-                  Start the conversation.
-                </ThemedText>
-              </View>
-            }
-          />
-        )}
-      </View>
+      <BottomSheetFlatList
+        data={comments || []}
+        keyExtractor={(item: IComment) => item._id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmptyComponent}
+      />
     </BottomSheetModal>
   );
 }

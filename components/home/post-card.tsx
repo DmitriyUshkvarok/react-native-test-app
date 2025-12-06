@@ -77,7 +77,7 @@ export default function PostCard({
         <PostActions post={post} onCommentPress={() => setShowComments(true)} />
 
         {/* Footer (Likes, Caption, Comments, Timestamp) */}
-        <PostFooter post={post} />
+        <PostFooter post={post} onCommentPress={() => setShowComments(true)} />
       </ThemedView>
 
       {/* Modals */}

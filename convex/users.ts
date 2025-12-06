@@ -1,7 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, MutationCtx, query, QueryCtx } from './_generated/server';
 
-// Получить всех пользователей (исключая удаленных)
 export const currentUser = query({
   args: {},
   handler: async (ctx) => {
@@ -9,6 +8,7 @@ export const currentUser = query({
   },
 });
 
+// Получить всех пользователей (исключая удаленных)
 export const getUsers = query({
   args: {},
   handler: async (ctx) => {

@@ -14,6 +14,7 @@ export const getComments = query({
       .order('desc') // Сначала новые
       .collect();
 
+    // Добавляем информацию о пользователе
     const commentsWithDetails = await Promise.all(
       comments.map(async (comment) => {
         const user = await ctx.db.get(comment.userId);
@@ -43,9 +44,6 @@ export const createComment = mutation({
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
-    if (!currentUser) {
-      throw new Error('Unauthorized');
-    }
 
     const post = await ctx.db.get(args.postId);
     if (!post) {
@@ -86,9 +84,6 @@ export const deleteComment = mutation({
   },
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
-    if (!currentUser) {
-      throw new Error('Unauthorized');
-    }
 
     const comment = await ctx.db.get(args.commentId);
     if (!comment) {
@@ -113,6 +108,32 @@ export const deleteComment = mutation({
         comments: Math.max(0, post.comments - 1),
       });
     }
+
+    return { success: true };
+  },
+});
+
+// Редактирование комментария
+export const updateComment = mutation({
+  args: {
+    commentId: v.id('comments'),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    const comment = await ctx.db.get(args.commentId);
+    if (!comment) {
+      throw new Error('Comment not found');
+    }
+
+    if (comment.userId !== currentUser._id) {
+      throw new Error('Unauthorized');
+    }
+
+    await ctx.db.patch(args.commentId, {
+      content: args.content,
+    });
 
     return { success: true };
   },

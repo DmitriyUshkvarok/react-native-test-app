@@ -4,9 +4,10 @@ import { Post } from './types';
 
 interface PostFooterProps {
   post: Post;
+  onCommentPress: () => void;
 }
 
-export default function PostFooter({ post }: PostFooterProps) {
+export default function PostFooter({ post, onCommentPress }: PostFooterProps) {
   const formatTimeAgo = (timestamp: number) => {
     const now = Date.now();
     const diff = now - timestamp;
@@ -44,7 +45,7 @@ export default function PostFooter({ post }: PostFooterProps) {
 
       {/* Comments Link */}
       {post.comments > 0 && (
-        <TouchableOpacity className="mt-1 px-3">
+        <TouchableOpacity className="mt-1 px-3" onPress={onCommentPress}>
           <ThemedText className="text-gray-500">
             View all {post.comments} comments
           </ThemedText>
