@@ -63,18 +63,49 @@ export const deletePost = mutation({
       throw new Error('Unauthorized: You can only delete your own posts');
     }
 
-    // Удаляем пост
+    // 1. Удаляем все лайки, связанные с постом
+    const likes = await ctx.db
+      .query('likes')
+      .withIndex('by_post', (q) => q.eq('postId', args.postId))
+      .collect();
+
+    for (const like of likes) {
+      await ctx.db.delete(like._id);
+    }
+
+    // 2. Удаляем все комментарии, связанные с постом
+    const comments = await ctx.db
+      .query('comments')
+      .withIndex('by_post', (q) => q.eq('postId', args.postId))
+      .collect();
+
+    for (const comment of comments) {
+      await ctx.db.delete(comment._id);
+    }
+
+    // 3. Удаляем все закладки, связанные с постом
+    const bookmarks = await ctx.db
+      .query('bookmarks')
+      .withIndex('by_post', (q) => q.eq('postId', args.postId))
+      .collect();
+
+    for (const bookmark of bookmarks) {
+      await ctx.db.delete(bookmark._id);
+    }
+
+    // 4. Удаляем сам пост
     await ctx.db.delete(args.postId);
 
-    // Уменьшаем счетчик постов пользователя
-    await ctx.db.patch(currentUser._id, {
-      posts: Math.max(0, currentUser.posts - 1),
-    });
-
-    // Опционально: удаляем файл из хранилища
+    // 5. Опционально: удаляем файл из хранилища
     if (post.storageId) {
       await ctx.storage.delete(post.storageId);
     }
+
+    // 6. Обновляем счетчики пользователя (посты и лайки)
+    await ctx.db.patch(currentUser._id, {
+      posts: Math.max(0, currentUser.posts - 1),
+      likes: Math.max(0, currentUser.likes - likes.length), // Вычитаем количество лайков, которые были у удаленного поста
+    });
 
     return { success: true };
   },
