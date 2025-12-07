@@ -37,6 +37,7 @@ const HomeTabLayout = () => {
         name="bookmarks"
         options={{
           title: 'Bookmarks',
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="bookmark.fill" color={color} />
           ),

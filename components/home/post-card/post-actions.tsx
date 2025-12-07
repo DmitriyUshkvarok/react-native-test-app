@@ -1,6 +1,7 @@
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity, View } from 'react-native';
+import PostBookmarkButton from './post-bookmark-button';
 import PostLikeButton from './post-like-button';
 import { Post } from './types';
 
@@ -26,9 +27,7 @@ export default function PostActions({
           <Ionicons name="paper-plane-outline" size={26} color={iconColor} />
         </TouchableOpacity>
       </View>
-      <TouchableOpacity>
-        <Ionicons name="bookmark-outline" size={26} color={iconColor} />
-      </TouchableOpacity>
+      <PostBookmarkButton postId={post._id} isBookmarked={post.isBookmarked} />
     </View>
   );
 }

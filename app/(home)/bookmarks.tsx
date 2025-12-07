@@ -1,30 +1,89 @@
-import { ThemedText } from '@/components/themed-text';
+import BookmarksFooter from '@/components/bookmarks/bookmarks-footer';
+import BookmarksHeader from '@/components/bookmarks/bookmarks-header';
+import EmptyBookmarks from '@/components/bookmarks/empty-bookmarks';
+import PostCard from '@/components/home/post-card';
+import { PostSkeleton } from '@/components/post-skeleton';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
+import { useState } from 'react';
+import { Alert, FlatList, RefreshControl } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const blurhash =
+  '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
 
 const Bookmarks = () => {
-  return (
-    <SafeAreaView className="flex-1" edges={['left', 'right']}>
-      <ThemedView className="flex-1 justify-center items-center px-6">
-        <View className="items-center">
-          <IconSymbol name="bookmark.fill" size={64} color="#3B82F6" />
-          <ThemedText className="text-2xl font-bold mt-4 mb-2">
-            Закладки
-          </ThemedText>
-          <ThemedText className="text-center text-gray-600 dark:text-gray-400">
-            Здесь будут отображаться ваши сохраненные элементы
-          </ThemedText>
+  const bookmarksData = useQuery(api.bookmarks.getBookmarkedPosts);
+  const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
-          <View className="mt-8 bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-            <ThemedText className="text-sm text-center">
-              💡 Этот экран использует SafeAreaView без ScrollView
-            </ThemedText>
-          </View>
-        </View>
+  const deletePost = useMutation(api.posts.deletePost);
+  const updatePost = useMutation(api.posts.updatePost);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 800);
+  };
+
+  const handleDeletePost = async (postId: Id<'posts'>) => {
+    try {
+      await deletePost({ postId });
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', 'Failed to delete post. Please try again.');
+    }
+  };
+
+  const handleEditPost = async (postId: Id<'posts'>, newCaption: string) => {
+    try {
+      await updatePost({ postId, caption: newCaption });
+    } catch (error) {
+      console.error('Error updating post:', error);
+      Alert.alert('Error', 'Failed to update caption. Please try again.');
+    }
+  };
+
+  if (bookmarksData === undefined) {
+    return (
+      <ThemedView className="flex-1" style={{ paddingTop: insets.top }}>
+        <BookmarksHeader />
+        <PostSkeleton />
+        <PostSkeleton />
       </ThemedView>
-    </SafeAreaView>
+    );
+  }
+
+  const { posts, currentUserId } = bookmarksData;
+
+  return (
+    <ThemedView className="flex-1" style={{ paddingTop: insets.top }}>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item._id}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={<BookmarksHeader />}
+        ListFooterComponent={posts.length > 0 ? <BookmarksFooter /> : null}
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            blurhash={blurhash}
+            currentUserId={currentUserId}
+            onDelete={handleDeletePost}
+            onEdit={handleEditPost}
+          />
+        )}
+        ItemSeparatorComponent={() => <ThemedView className="h-4" />}
+        ListEmptyComponent={<EmptyBookmarks />}
+      />
+    </ThemedView>
   );
 };
 
