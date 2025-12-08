@@ -3,26 +3,22 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import ButtonOpacity from '@/components/ui/button-opacity';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { api } from '@/convex/_generated/api';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { setTheme } from '@/store/theme-slice';
 import { useClerk, useUser } from '@clerk/clerk-expo';
+import { useQuery } from 'convex/react';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  Alert,
-  Modal,
-  RefreshControl,
-  StyleSheet,
-  Switch,
-  View,
-} from 'react-native';
+import { Alert, Modal, RefreshControl, Switch, View } from 'react-native';
 
 const Profile = () => {
   const router = useRouter();
   const { signOut } = useClerk();
   const { user } = useUser();
   const dispatch = useAppDispatch();
+  const unreadCount = useQuery(api.notifications.getUnreadCount);
   const theme = useAppSelector((state) => state.theme.theme);
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState(true);
@@ -127,6 +123,13 @@ const Profile = () => {
                 <IconSymbol name="bell.fill" size={20} color="#3B82F6" />
               </View>
               <ThemedText className="font-medium">Notifications</ThemedText>
+              {unreadCount !== undefined && unreadCount > 0 && (
+                <View className="bg-red-500 rounded-full w-5 h-5 items-center justify-center ml-2">
+                  <ThemedText className="text-white text-xs font-bold leading-3">
+                    {unreadCount}
+                  </ThemedText>
+                </View>
+              )}
             </View>
             <Switch
               value={notifications}
@@ -242,5 +245,3 @@ const Profile = () => {
 };
 
 export default Profile;
-
-const styles = StyleSheet.create({});

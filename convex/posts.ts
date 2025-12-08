@@ -286,3 +286,62 @@ export const getPosts = query({
     return { posts: postsWithDetails, currentUserId: currentUser?._id };
   },
 });
+
+// Получить один пост по ID (для детального просмотра)
+export const getPostById = query({
+  args: {
+    postId: v.id('posts'),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    const post = await ctx.db.get(args.postId);
+
+    if (!post) {
+      return null;
+    }
+
+    const user = await ctx.db.get(post.userId);
+
+    const likes = currentUser
+      ? await ctx.db
+          .query('likes')
+          .withIndex('by_user_and_post', (q) =>
+            q.eq('userId', currentUser._id).eq('postId', post._id),
+          )
+          .first()
+      : null;
+
+    const bookmarked = currentUser
+      ? await ctx.db
+          .query('bookmarks')
+          .withIndex('by_user_and_post', (q) =>
+            q.eq('userId', currentUser._id).eq('postId', post._id),
+          )
+          .first()
+      : null;
+
+    const postWithDetails = {
+      ...post,
+      user: user?.deletedAt
+        ? {
+            _id: user._id,
+            name: '[Deleted User]',
+            fullName: '[Deleted User]',
+            image: undefined,
+          }
+        : user
+          ? {
+              _id: user._id,
+              name: user.name,
+              fullName: user.fullName,
+              image: user.image,
+            }
+          : null,
+      isLiked: !!likes,
+      isBookmarked: !!bookmarked,
+    };
+
+    return { post: postWithDetails, currentUserId: currentUser?._id };
+  },
+});

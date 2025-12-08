@@ -1,8 +1,10 @@
 import { HapticTab } from '@/components/haptic-tab';
 import { CustomHeader } from '@/components/ui/custom-header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { api } from '@/convex/_generated/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAuth } from '@clerk/clerk-expo';
+import { useQuery } from 'convex/react';
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet } from 'react-native';
@@ -10,6 +12,7 @@ import { StyleSheet } from 'react-native';
 const HomeTabLayout = () => {
   const tintColor = useThemeColor({}, 'tint');
   const { isSignedIn } = useAuth();
+  const unreadCount = useQuery(api.notifications.getUnreadCount);
 
   if (!isSignedIn) {
     return <Redirect href={'/(auth)/login'} />;
@@ -57,7 +60,9 @@ const HomeTabLayout = () => {
         name="notifications"
         options={{
           title: 'Notifications',
+          headerShown: false,
           tabBarActiveTintColor: 'red', // Переопределяем цвет только для этой вкладки
+          tabBarBadge: unreadCount ? unreadCount : undefined,
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
               size={28}
