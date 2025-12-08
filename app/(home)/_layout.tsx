@@ -6,8 +6,6 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAuth } from '@clerk/clerk-expo';
 import { useQuery } from 'convex/react';
 import { Redirect, Tabs } from 'expo-router';
-import React from 'react';
-import { StyleSheet } from 'react-native';
 
 const HomeTabLayout = () => {
   const tintColor = useThemeColor({}, 'tint');
@@ -81,10 +79,15 @@ const HomeTabLayout = () => {
           ),
         }}
       />
+      <Tabs.Screen
+        name="post/[id]"
+        options={{
+          href: null, // ВАЖНО: скрывает из табов, но маршрут остается доступным
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 };
 
 export default HomeTabLayout;
-
-const styles = StyleSheet.create({});

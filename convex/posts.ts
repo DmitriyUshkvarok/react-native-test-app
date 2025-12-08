@@ -345,3 +345,83 @@ export const getPostById = query({
     return { post: postWithDetails, currentUserId: currentUser?._id };
   },
 });
+
+// Получить посты автора (для футера на странице деталей поста)
+export const getPostsByAuthor = query({
+  args: {
+    userId: v.id('users'),
+    excludePostId: v.optional(v.id('posts')),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const limit = args.limit ?? 5;
+
+    // Получаем все посты автора
+    const allPosts = await ctx.db
+      .query('posts')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .order('desc')
+      .collect();
+
+    // Фильтруем, исключая текущий пост
+    const filteredPosts = args.excludePostId
+      ? allPosts.filter((post) => post._id !== args.excludePostId)
+      : allPosts;
+
+    // Ограничиваем количество
+    const posts = filteredPosts.slice(0, limit);
+
+    if (posts.length === 0) {
+      return [];
+    }
+
+    // Добавляем детали к каждому посту
+    const postsWithDetails = await Promise.all(
+      posts.map(async (post) => {
+        const user = await ctx.db.get(post.userId);
+
+        const likes = currentUser
+          ? await ctx.db
+              .query('likes')
+              .withIndex('by_user_and_post', (q) =>
+                q.eq('userId', currentUser._id).eq('postId', post._id),
+              )
+              .first()
+          : null;
+
+        const bookmarked = currentUser
+          ? await ctx.db
+              .query('bookmarks')
+              .withIndex('by_user_and_post', (q) =>
+                q.eq('userId', currentUser._id).eq('postId', post._id),
+              )
+              .first()
+          : null;
+
+        return {
+          ...post,
+          user: user?.deletedAt
+            ? {
+                _id: user._id,
+                name: '[Deleted User]',
+                fullName: '[Deleted User]',
+                image: undefined,
+              }
+            : user
+              ? {
+                  _id: user._id,
+                  name: user.name,
+                  fullName: user.fullName,
+                  image: user.image,
+                }
+              : null,
+          isLiked: !!likes,
+          isBookmarked: !!bookmarked,
+        };
+      }),
+    );
+
+    return postsWithDetails;
+  },
+});

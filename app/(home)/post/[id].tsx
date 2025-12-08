@@ -1,4 +1,6 @@
+import LayoutScroll from '@/components/_layout-scroll';
 import PostCard from '@/components/home/post-card';
+import PostDetailFooter from '@/components/home/post-detail-footer';
 import { PostSkeleton } from '@/components/post-skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -7,14 +9,15 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, ScrollView, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, TouchableOpacity } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const blurhash =
   '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
 
 export default function PostDetail() {
   const { id } = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const postData = useQuery(api.posts.getPostById, {
@@ -50,8 +53,9 @@ export default function PostDetail() {
           <TouchableOpacity onPress={() => router.back()}>
             <IconSymbol name="chevron.left" size={24} color="#3B82F6" />
           </TouchableOpacity>
-          <ThemedText className="text-xl font-bold ml-4">Пост</ThemedText>
+          <ThemedText className="text-xl font-bold ml-4">Post</ThemedText>
         </ThemedView>
+        <PostSkeleton />
         <PostSkeleton />
       </SafeAreaView>
     );
@@ -64,10 +68,10 @@ export default function PostDetail() {
           <TouchableOpacity onPress={() => router.back()}>
             <IconSymbol name="chevron.left" size={24} color="#3B82F6" />
           </TouchableOpacity>
-          <ThemedText className="text-xl font-bold ml-4">Пост</ThemedText>
+          <ThemedText className="text-xl font-bold ml-4">Post</ThemedText>
         </ThemedView>
         <ThemedView className="flex-1 items-center justify-center">
-          <ThemedText className="text-gray-500">Пост не найден</ThemedText>
+          <ThemedText className="text-gray-500">Post not found</ThemedText>
         </ThemedView>
       </SafeAreaView>
     );
@@ -76,15 +80,18 @@ export default function PostDetail() {
   const { post, currentUserId } = postData;
 
   return (
-    <SafeAreaView className="flex-1">
+    <ThemedView className="flex-1" style={{ paddingTop: insets.top }}>
       <ThemedView className="flex-row items-center p-4 border-b border-gray-200 dark:border-gray-800">
         <TouchableOpacity onPress={() => router.back()}>
           <IconSymbol name="chevron.left" size={24} color="#3B82F6" />
         </TouchableOpacity>
-        <ThemedText className="text-xl font-bold ml-4">Пост</ThemedText>
+        <ThemedText className="text-xl font-bold ml-4">Post</ThemedText>
       </ThemedView>
-
-      <ScrollView className="flex-1">
+      <LayoutScroll
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         <PostCard
           post={post}
           blurhash={blurhash}
@@ -92,7 +99,17 @@ export default function PostDetail() {
           onDelete={handleDeletePost}
           onEdit={handleEditPost}
         />
-      </ScrollView>
-    </SafeAreaView>
+
+        {/* Footer with metadata and more posts */}
+        {post.user && (
+          <PostDetailFooter
+            authorId={post.userId}
+            authorName={post.user.name}
+            postId={post._id}
+            createdAt={post._creationTime}
+          />
+        )}
+      </LayoutScroll>
+    </ThemedView>
   );
 }

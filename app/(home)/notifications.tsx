@@ -35,8 +35,7 @@ const Notifications = () => {
 
     // 2. Навигация к посту (динамический роутинг)
     if (notification.postId) {
-      // Используем динамический роутинг Expo Router
-      // Создайте файл app/post/[id].tsx для детального просмотра поста
+      // Используем относительный путь, так как мы уже внутри группы (home)
       router.push(`/post/${notification.postId}`);
     }
   };
